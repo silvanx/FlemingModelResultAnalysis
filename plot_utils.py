@@ -120,18 +120,29 @@ def load_dbs_output(dir: Path) -> tuple[np.ndarray, AnalogSignal]:
     filename = dir / 'DBS_Signal.mat'
     data = NeoMatlabIO(filename).read()
     sig = data[0].segments[0].analogsignals[0]
+    time = data[0].segments[0].analogsignals[1]
+
+    return time, sig
+
+
+def load_cortical_soma_voltage(dir: Path) -> tuple[np.ndarray, AnalogSignal]:
+    '''Reads Ctx soma voltag from a .mat file'''
+    filename = dir / 'Cortical_Pop' / 'Cortical_Soma_v.mat'
+    data = NeoMatlabIO(filename).read()
+    sig = data[0].segments[0].analogsignals[0]
     time = sig.times
 
     return time, sig
 
 
-def load_cortical_soma_voltage(dir: Path) -> AnalogSignal:
+def load_cortical_collateral_voltage(dir: Path) -> tuple[np.ndarray, AnalogSignal]:
     '''Reads Ctx soma voltag from a .mat file'''
-    filename = dir / 'Cortical_Pop' / 'Cortical_Soma_v.mat'
+    filename = dir / 'Cortical_Pop' / 'Cortical_Collateral_v.mat'
     data = NeoMatlabIO(filename).read()
     sig = data[0].segments[0].analogsignals[0]
+    time = sig.times
 
-    return sig
+    return time, sig
 
 
 def load_stn_lfp(dir: Path) -> tuple[np.ndarray, AnalogSignal]:
