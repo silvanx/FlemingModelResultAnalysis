@@ -71,9 +71,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.last_arrows = None
         self.zlim_exponent_high = 1
         self.zlim_exponent_low = -9
-        self.df = pd.read_excel(
-            "Simulation_Output_Results/output.xlsx"
-            ).dropna(subset=['Simulation dir'])
+        try:
+            self.df = pd.read_excel(
+                "Simulation_Output_Results/output.xlsx"
+                ).dropna(subset=['Simulation dir'])
+        except FileNotFoundError:
+            self.df = pd.DataFrame()
 
         self.parameter_plot = MplCanvas(self, width=12, height=7, dpi=100)
         parameter_toolbar = NavigationToolbar(self.parameter_plot, self)
@@ -181,9 +184,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.installEventFilter(self)
 
-        u.plot_pi_fitness_function(Path(self.fitness_dir),
-                                   self.parameter_plot.fig,
-                                   self.parameter_plot.axes)
+        if Path(self.fitness_dir).exists():
+            u.plot_pi_fitness_function(Path(self.fitness_dir),
+                                       self.parameter_plot.fig,
+                                       self.parameter_plot.axes)
         self.last_lambda = 1
         self.file_list = self.populate_file_list()
         self.refresh_file_list_display()
@@ -296,7 +300,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def populate_file_list(self):
         dir = Path(self.results_dir)
-        file_list = [file.name for file in dir.iterdir() if file.is_dir()]
+        if dir.exists():
+            file_list = [file.name for file in dir.iterdir() if file.is_dir()]
+        else:
+            file_list = []
         return file_list
 
     def refresh_file_list_display(self):
