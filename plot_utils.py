@@ -462,8 +462,10 @@ def plot_colormap(fig, ax, x_orig, y_orig, x, y, z, xlabel='$K_p$',
     ax.set_xlabel(xlabel, fontsize=fontsize)
     ax.set_ylabel(ylabel, fontsize=fontsize)
     ax.set_title(title, fontsize=fontsize)
-    ax.set_ylim([-0.01, y_orig.max() + 0.01])
-    ax.set_xlim([-0.01, x_orig.max() + 0.01])
+    y_pad = y_orig.ptp() * 0.01
+    x_pad = x_orig.ptp() * 0.01
+    ax.set_ylim([y_orig.min() - y_pad, y_orig.max() + y_pad])
+    ax.set_xlim([x_orig.min() - x_pad, x_orig.max() + x_pad])
     plt.setp(ax.get_xticklabels(), fontsize=fontsize)
     plt.setp(ax.get_yticklabels(), fontsize=fontsize)
     cbar.ax.tick_params(labelsize=fontsize)
