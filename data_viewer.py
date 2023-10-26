@@ -1,11 +1,11 @@
 from pathlib import Path
-import sys, os
+import sys
 import matplotlib
 from PyQt5 import QtWidgets, QtGui, QtCore
 import plot_utils as u
 import pandas as pd
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg,\
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, \
     NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
@@ -61,10 +61,10 @@ class MainWindow(QtWidgets.QMainWindow):
             "}")
 
         self.fitness_dir = (
-            "Simulation_Output_Results/PI_grid_search_12"
+            "C:\\cic\\wrk\\zz_archive\\20230324_John_model\\Simulation_Output_Results\\PI_grid_search_12"
             )
         self.results_dir = (
-            "Simulation_Output_Results/ift"
+            "stage_two_mean"
             )
         self.file_list = []
         self.current_file = None
@@ -95,8 +95,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.zlim_slider = RangeSlider(QtCore.Qt.Vertical)
         self.zlim_slider.setMinimum(-9)
         self.zlim_slider.setMaximum(1)
-        self.zlim_slider.setHigh(self.zlim_slider.maximum())
-        self.zlim_slider.setLow(self.zlim_slider.minimum())
+        self.zlim_slider.set_high(self.zlim_slider.maximum())
+        self.zlim_slider.set_low(self.zlim_slider.minimum())
         self.zlim_slider.setTickPosition(QtWidgets.QSlider.TicksRight)
         self.zlim_slider.setTickInterval(1)
         self.zlim_slider.sliderMoved.connect(self.update_plot_bounds)
@@ -196,7 +196,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
 
     def eventFilter(self,
-                    object: QtCore.QObject,
+                    obj: QtCore.QObject,
                     event: QtCore.QEvent) -> bool:
         if event.type() != QtCore.QEvent.Type.KeyPress:
             return False
@@ -299,9 +299,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.parameter_plot.draw()
 
     def populate_file_list(self):
-        dir = Path(self.results_dir)
-        if dir.exists():
-            file_list = [file.name for file in dir.iterdir() if file.is_dir()]
+        results_dir = Path(self.results_dir)
+        if results_dir.exists():
+            file_list = [file.name for file in results_dir.iterdir() if file.is_dir()]
         else:
             file_list = []
         return file_list
@@ -310,8 +310,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_list_widget.clearSelection()
         self.file_list_widget.clear()
         for file in self.file_list:
-            currentItem = QtWidgets.QListWidgetItem(self.file_list_widget)
-            currentItem.setText(file)
+            current_item = QtWidgets.QListWidgetItem(self.file_list_widget)
+            current_item.setText(file)
 
     def plot_clicked_dir_arrows(self):
         if len(self.file_list_widget.selectedItems()) > 0:
@@ -324,7 +324,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.current_file = self.file_list.index(text)
             f = Path(self.results_dir) / text
 
-            row = self.df[self.df["Simulation dir"].str.contains(text)]
             outfiles = list(f.glob("*.out"))
             if len(outfiles) == 1:
                 config = u.read_config_from_output_file(outfiles[0])
@@ -337,37 +336,40 @@ class MainWindow(QtWidgets.QMainWindow):
                     f"Ti init: {config['ti']}\n"
                     f"gamma: {config['gamma']}, "
                     f"lambda: {config['lam']}\n"
-                    f"min_kp,min_ti: {config['min_kp'], config['min_ti']}"
+                    f"min_kp,min_ti: {config['min_kp'], config['min_ti']}\n"
+                    f"stage_two_mean: {config['stage_two_mean']}"
                     )
                 self.description.setText(description) 
-            elif not row.empty:
-                description = (
-                    f"ID: {row.iloc[0]['Simulation number']}\t"
-                    f"{row.iloc[0]['Sim duration [ms]']} ms\t"
-                    f"controller: {row.iloc[0]['controller']} "
-                    f"({row.iloc[0]['IFT experiment length [s]']} s)\n"
-                    f"Kp init: {row.iloc[0]['Kp']}, "
-                    f"Ti init: {row.iloc[0]['Ti']}\n"
-                    f"gamma: {row.iloc[0]['gamma']}, "
-                    f"lambda: {row.iloc[0]['lambda']}\n"
-                    f"min_kp,min_ti: {row.iloc[0]['min_kp,min_ti']}"
-                    )
-                self.description.setText(description)
-                if self.last_lambda != row.iloc[0]['lambda']:
-                    try:
-                        cax = self.parameter_plot.fig.axes[-1]
-                    except IndexError:
-                        cax = None
-                    self.parameter_plot.axes.cla()
-                    u.plot_pi_fitness_function(Path(self.fitness_dir),
-                                               self.parameter_plot.fig,
-                                               self.parameter_plot.axes,
-                                               cax=cax,
-                                               lam=row.iloc[0]['lambda'],
-                                               zlim_exponent_high=self.zlim_exponent_high,
-                                               zlim_exponent_low=self.zlim_exponent_low)
-                    self.parameter_plot.draw()
-                    self.last_lambda = row.iloc[0]['lambda']
+            elif not self.df.empty:
+                row = self.df[self.df["Simulation dir"].str.contains(text)]
+                if not row.empty:
+                    description = (
+                        f"ID: {row.iloc[0]['Simulation number']}\t"
+                        f"{row.iloc[0]['Sim duration [ms]']} ms\t"
+                        f"controller: {row.iloc[0]['controller']} "
+                        f"({row.iloc[0]['IFT experiment length [s]']} s)\n"
+                        f"Kp init: {row.iloc[0]['Kp']}, "
+                        f"Ti init: {row.iloc[0]['Ti']}\n"
+                        f"gamma: {row.iloc[0]['gamma']}, "
+                        f"lambda: {row.iloc[0]['lambda']}\n"
+                        f"min_kp,min_ti: {row.iloc[0]['min_kp,min_ti']}"
+                        )
+                    self.description.setText(description)
+                    if self.last_lambda != row.iloc[0]['lambda']:
+                        try:
+                            cax = self.parameter_plot.fig.axes[-1]
+                        except IndexError:
+                            cax = None
+                        self.parameter_plot.axes.cla()
+                        u.plot_pi_fitness_function(Path(self.fitness_dir),
+                                                   self.parameter_plot.fig,
+                                                   self.parameter_plot.axes,
+                                                   cax=cax,
+                                                   lam=row.iloc[0]['lambda'],
+                                                   zlim_exponent_high=self.zlim_exponent_high,
+                                                   zlim_exponent_low=self.zlim_exponent_low)
+                        self.parameter_plot.draw()
+                        self.last_lambda = row.iloc[0]['lambda']
             else:
                 self.description.setText("No description found in database")
 
@@ -409,14 +411,14 @@ class RangeSlider(QtWidgets.QSlider):
     def low(self):
         return self._low
 
-    def setLow(self, low:int):
+    def set_low(self, low: int):
         self._low = low
         self.update()
 
     def high(self):
         return self._high
 
-    def setHigh(self, high):
+    def set_high(self, high):
         self._high = high
         self.update()
 
@@ -438,19 +440,19 @@ class RangeSlider(QtWidgets.QSlider):
         groove = style.subControlRect(QtWidgets.QStyle.CC_Slider, opt, QtWidgets.QStyle.SC_SliderGroove, self)
 
         # drawSpan
-        #opt = QtWidgets.QStyleOptionSlider()
+        # opt = QtWidgets.QStyleOptionSlider()
         self.initStyleOption(opt)
         opt.subControls = QtWidgets.QStyle.SC_SliderGroove
-        #if self.tickPosition() != self.NoTicks:
+        # if self.tickPosition() != self.NoTicks:
         #    opt.subControls |= QtWidgets.QStyle.SC_SliderTickmarks
         opt.siderValue = 0
-        #print(self._low)
+        # print(self._low)
         opt.sliderPosition = self._low
         low_rect = style.subControlRect(QtWidgets.QStyle.CC_Slider, opt, QtWidgets.QStyle.SC_SliderHandle, self)
         opt.sliderPosition = self._high
         high_rect = style.subControlRect(QtWidgets.QStyle.CC_Slider, opt, QtWidgets.QStyle.SC_SliderHandle, self)
 
-        #print(low_rect, high_rect)
+        # print(low_rect, high_rect)
         low_pos = self.__pick(low_rect.center())
         high_pos = self.__pick(high_rect.center())
 
@@ -458,18 +460,21 @@ class RangeSlider(QtWidgets.QSlider):
         max_pos = max(low_pos, high_pos)
 
         c = QtCore.QRect(low_rect.center(), high_rect.center()).center()
-        #print(min_pos, max_pos, c)
+        # print(min_pos, max_pos, c)
         if opt.orientation == QtCore.Qt.Horizontal:
             span_rect = QtCore.QRect(QtCore.QPoint(min_pos, c.y()-2), QtCore.QPoint(max_pos, c.y()+1))
         else:
             span_rect = QtCore.QRect(QtCore.QPoint(c.x()-2, min_pos), QtCore.QPoint(c.x()+1, max_pos))
 
-        #self.initStyleOption(opt)
-        #print(groove.x(), groove.y(), groove.width(), groove.height())
-        if opt.orientation == QtCore.Qt.Horizontal: groove.adjust(0, 0, -1, 0)
-        else: groove.adjust(0, 0, 0, -1)
+        # self.initStyleOption(opt)
+        # print(groove.x(), groove.y(), groove.width(), groove.height())
+        if opt.orientation == QtCore.Qt.Horizontal:
+            groove.adjust(0, 0, -1, 0)
+        else:
+            groove.adjust(0, 0, 0, -1)
 
-        if True: #self.isEnabled():
+        # if self.isEnabled():
+        if True:
             highlight = self.palette().color(QtGui.QPalette.Highlight)
             painter.setBrush(QtGui.QBrush(highlight))
             painter.setPen(QtGui.QPen(highlight, 0))

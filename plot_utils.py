@@ -17,12 +17,12 @@ from neo.core import AnalogSignal
 
 
 def mat_to_dict(obj: Any) -> dict:
-    '''Reads a matlab NEO struct and turns it into a dictionary'''
+    """Reads a matlab NEO struct and turns it into a dictionary"""
     return dict(zip((e[0] for e in obj.dtype.descr), obj))
 
 
 def find_population_spikes(sig: np.ndarray) -> np.ndarray:
-    '''Returns the locations of spikes in an array'''
+    """Returns the locations of spikes in an array"""
     spikes = []
     for i in range(sig.shape[1]):
         cell_voltage = sig[:, i]
@@ -38,7 +38,7 @@ def burst_txt_to_signal(
         tstop: float,
         dt: float
         ) -> tuple[np.ndarray, np.ndarray]:
-    '''Generates square wave from step amplitudes and times'''
+    """Generates square wave from step amplitudes and times"""
     segments = []
     if tstart < tt[0]:
         initial_segment = aa[0] * np.ones(int(np.floor((tt[0] - tstart) / dt)))
@@ -62,21 +62,21 @@ def burst_txt_to_signal(
 
 
 def time_to_sample(tt: np.ndarray, t: float) -> int:
-    '''Return the index of closest value in the array'''
+    """Returns the index of closest value in the array"""
     return (np.abs(np.array(tt) - t)).argmin()
 
 
 def compute_cost(lfp: np.ndarray, u: np.ndarray, lam: float,
                  setpoint: float = 1.0414E-4) -> float:
-    '''Calculates the objective function from raw lfp and DBS data'''
+    """Calculates the objective function from raw lfp and DBS data"""
     n = len(lfp)
     cost = np.sum((lfp - setpoint) ** 2 + lam * u ** 2) / (2 * n)
     return cost
 
 
 def compute_fitness(x, y, xi, yi, mse, teed, lam, method='linear'):
-    '''Interpolate the objective function from mean square error and TEED
-    sparse data'''
+    """Interpolates the objective function from mean square error and TEED
+    sparse data"""
     fitness = mse + lam * teed
     fitness_zi = griddata((x, y), fitness, (xi, yi), method=method)
     return fitness_zi
@@ -85,14 +85,14 @@ def compute_fitness(x, y, xi, yi, mse, teed, lam, method='linear'):
 def compute_mse(lfp_time: np.ndarray, lfp: np.ndarray,
                 setpoint: float = 1.0414E-4,
                 tail_length: Optional[float] = None) -> float:
-    '''Calculates mean square error from data'''
+    """Calculates mean square error from data"""
     if tail_length is not None:
         dt = lfp_time[1] - lfp_time[0]
         num_samples = int(tail_length / dt)
         lfp_time = lfp_time[-num_samples:]
         lfp = lfp[-num_samples:]
     duration = lfp_time[-1] - lfp_time[0]
-    error = lfp.as_array().transpose()[0] - setpoint
+    error = lfp - setpoint
     mse = np.trapz(error ** 2, lfp_time) / duration
     return mse
 
@@ -232,7 +232,7 @@ def read_ift_results(dirname: Path):
 
 def load_fitness_data(pi_fitness_dir, lam, setpoint=1.0414E-4, tail_length=6,
                       recalculate=False):
-    '''Loads or calculates PI controller fitness data from directory'''
+    """Loads or calculates PI controller fitness data from directory"""
     directory = Path(pi_fitness_dir)
 
     if not recalculate:
@@ -308,14 +308,14 @@ def load_fitness_data(pi_fitness_dir, lam, setpoint=1.0414E-4, tail_length=6,
 
 
 def read_config_from_output_file(file: Path) -> dict:
-    '''Reads the .out file and returns a dictionary with config values'''
+    """Reads the .out file and returns a dictionary with config values"""
     config = dict()
     with open(file, 'r') as f:
         file_contents = f.read()
         match_numerical = re.findall('\'(.+)\': ([-e0-9\.]+),\n', file_contents)
         for m in match_numerical:
             config[m[0]] = float(m[1])
-        match_text = re.findall('\'(Controller|Modulation)\': \'([a-zA-Z]+)\',\n', file_contents)
+        match_text = re.findall('\'(Controller|Modulation|stage_two_mean)\': (\'?([a-zA-Z]+)\'?),\n', file_contents)
         for m in match_text:
             config[m[0]] = m[1]
     return config
@@ -327,13 +327,13 @@ def read_config_from_output_file(file: Path) -> dict:
 
 
 def format_single_2d_plot(fig, xlabel, ylabel, title, fontsize=22):
-    '''Sets appropriate font size everywhere and unboxes the plot'''
+    """Sets appropriate font size everywhere and unboxes the plot"""
     ax = fig.axes[0]
     format_single_axis(ax, xlabel, ylabel, title, fontsize=fontsize)
 
 
 def format_single_axis(ax, xlabel, ylabel, title, fontsize=22):
-    '''Sets appropriate font size everywhere and unboxes the axis'''
+    """Sets appropriate font size everywhere and unboxes the axis"""
     ax.tick_params(axis='both', which='major', labelsize=fontsize)
     ax.yaxis.get_offset_text().set_fontsize(fontsize)
     ax.spines['top'].set_visible(False)
@@ -585,8 +585,9 @@ def plot_pi_fitness_function(pi_fitness_dir, fig, ax, setpoint=1.0414E-4,
         yi,
         fitness_zi,
         cmap=cmap,
-        norm=clrs.LogNorm(vmin=(10 ** zlim_exponent_low - 1e-15),
-                          vmax=(10 ** zlim_exponent_high + 1e-15)))
+        # norm=clrs.LogNorm(vmin=(10 ** zlim_exponent_low - 1e-15),
+        #                   vmax=(10 ** zlim_exponent_high + 1e-15)))
+        )
     if plot_grid:
         ax.scatter(x, y, c='k', s=5)
     if cax is None:
@@ -691,7 +692,7 @@ def plot_ift_signals(dirname, axs=None, max_t=None, linewidth=3, fontsize=22):
     with open(result_dir / 'controller_integral_term_values.csv', 'r') as f:
         integral_term_history = np.array([float(r) for r in f])
 
-    time, dbs = load_dbs_output(result_dir)
+    # time, dbs = load_dbs_output(result_dir)
 
     shifted_reference_history = np.copy(reference_history)
     shifted_reference_history[iteration_history == 0] = 0
@@ -711,8 +712,8 @@ def plot_ift_signals(dirname, axs=None, max_t=None, linewidth=3, fontsize=22):
             shifted_reference_history = np.insert(
                 tmp, e - length + 1, np.zeros(length))
 
-    highlight_stop = tt[np.where(np.diff(iteration_history) == -1)]
-    highlight_start = tt[np.where(np.diff(iteration_history) == 1)]
+    highlight_stop = (tt[iteration_history >= 0])[np.where(np.diff(iteration_history[iteration_history >= 0]) == -1)]
+    highlight_start = (tt[iteration_history >= 0])[np.where(np.diff(iteration_history[iteration_history >= 0]) == 1)]
 
     if axs is None:
         fig = plt.figure(figsize=(13, 10))
@@ -723,16 +724,28 @@ def plot_ift_signals(dirname, axs=None, max_t=None, linewidth=3, fontsize=22):
     if max_t is None:
         max_t = len(tt)
     axs[0].plot(tt[:max_t], beta_history[:max_t], linewidth=2)
+    axs[0].plot(tt, shifted_reference_history)
     # axs[1].plot(time['signal'][:, 0]/1000, -dbs['signal'][:, 0])
     axs[1].plot(tt[:max_t], error_history[:max_t], color="#a42cd6", linewidth=linewidth)
-    # axs[1].plot(tt, integral_term_history)
     axs[2].plot(tt[:max_t], parameters[:max_t, 0], color="#0d324d", linewidth=linewidth)
     axs[2].plot(tt[:max_t], parameters[:max_t, 1], color="#f59c04", linewidth=linewidth)
-    # axs[1].plot(tt, iteration_history)
+    axs[1].plot(tt, iteration_history)
     for s, e in zip(highlight_start, highlight_stop):
+        if e > max_t:
+            e = max_t
         axs[1].fill_betweenx([min(error_history[:max_t]), max(error_history[:max_t])], s, e, color="#00a349", alpha=0.2)
+    for s, e in zip(highlight_stop, highlight_start[1:]):
+        mean_ref = np.mean(beta_history[time_to_sample(tt, s):time_to_sample(tt, e)])
+        axs[0].plot([s, e], [mean_ref, mean_ref], color="black", linewidth=5, linestyle="--")
+
+    axs[0].legend(["Controller beta", "Controller reference", "Mean controller beta"])
     axs[2].legend(['$K_p$', '$T_i$'], fontsize=fontsize)
-    # axs[0].plot(tt, shifted_reference_history)
+
+    axs[0].set_title("Beta and shifted reference history", fontsize=fontsize)
+    axs[1].set_title("Error history and iteration history", fontsize=fontsize)
+    axs[2].set_title("Parameter update", fontsize=fontsize)
+
+    axs[2].set_xlabel("Time [s]", fontsize=fontsize)
 
     for a in axs:
         a.set_xlim([min(tt) - 0.1, max(tt[:max_t]) + 0.1])
