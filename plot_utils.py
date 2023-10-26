@@ -172,33 +172,30 @@ def load_controller_data(
         controller_b = np.array([float(r[0]) for r in csv.reader(f)])
     return controller_t, controller_p, controller_b
 
+def data_from_file_or_zeros(file, shape):
+    try:
+        with open(file, 'r') as f:
+            return np.array([float(r) for r in f])
+    except FileNotFoundError:
+        return np.zeros(shape)
+
 
 def read_ift_results(dirname: Path):
-    '''Ingests IFT results from directory'''
+    """Ingests IFT results from directory"""
     result_dir = Path(dirname)
     with open(result_dir / 'controller_sample_times.csv', 'r') as f:
         tt = np.array([float(r) for r in f])
 
-    with open(result_dir / 'controller_iteration_values.csv', 'r') as f:
-        iteration_history = np.array([float(r) for r in f])
-
-    with open(result_dir / 'controller_reference_values.csv', 'r') as f:
-        reference_history = np.array([float(r) for r in f])
-
-    with open(result_dir / 'controller_error_values.csv', 'r') as f:
-        error_history = np.array([float(r) for r in f])
-
-    with open(result_dir / 'controller_beta_values.csv', 'r') as f:
-        beta_history = np.array([float(r) for r in f])
+    iteration_history = data_from_file_or_zeros(result_dir / 'controller_iteration_values.csv', tt.shape)
+    reference_history = data_from_file_or_zeros(result_dir / 'controller_reference_values.csv', tt.shape)
+    error_history = data_from_file_or_zeros(result_dir / 'controller_error_values.csv', tt.shape)
+    beta_history = data_from_file_or_zeros(result_dir / 'controller_beta_values.csv', tt.shape)
+    integral_term_history = data_from_file_or_zeros(result_dir / 'controller_integral_term_values.csv', tt.shape)
 
     with open(result_dir / 'controller_parameter_values.csv', 'r') as f:
         csvreader = csv.reader(f, delimiter=',')
         parameters = np.asarray([[float(r[0]), float(r[1])]
                                  for r in csvreader])
-
-    with open(result_dir / 'controller_integral_term_values.csv', 'r') as f:
-        integral_term_history = np.array([float(r) for r in f])
-
     # time, dbs = load_dbs_output(result_dir)
 
     shifted_reference_history = np.copy(reference_history)

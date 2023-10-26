@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 import matplotlib
+from matplotlib import cm
 from PyQt5 import QtWidgets, QtGui, QtCore
 import plot_utils as u
 import pandas as pd
@@ -11,6 +12,8 @@ from matplotlib.figure import Figure
 
 matplotlib.use("Qt5Agg")
 
+
+colormap = cm.Reds
 
 class MplCanvas(FigureCanvasQTAgg):
 
@@ -184,11 +187,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.installEventFilter(self)
 
+        self.last_lambda = 3e-09
         if Path(self.fitness_dir).exists():
             u.plot_pi_fitness_function(Path(self.fitness_dir),
                                        self.parameter_plot.fig,
-                                       self.parameter_plot.axes)
-        self.last_lambda = 1
+                                       self.parameter_plot.axes,
+                                       lam=self.last_lambda,
+                                       cmap=colormap)
         self.file_list = self.populate_file_list()
         self.refresh_file_list_display()
 
@@ -239,7 +244,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                    self.parameter_plot.fig,
                                    self.parameter_plot.axes,
                                    cax=cax,
-                                   zlim_exponent_high=self.zlim_exponent_high)
+                                   zlim_exponent_high=self.zlim_exponent_high,
+                                   cmap=colormap)
         self.parameter_plot.draw()
         QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -270,7 +276,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                    self.parameter_plot.axes,
                                    cax=cax,
                                    zlim_exponent_high=self.zlim_exponent_high,
-                                   zlim_exponent_low=self.zlim_exponent_low)
+                                   zlim_exponent_low=self.zlim_exponent_low,
+                                   cmap=colormap)
         if self.last_arrows is not None:
             for arrow in self.last_arrows:
                 self.parameter_plot.axes.add_patch(arrow)
@@ -295,7 +302,8 @@ class MainWindow(QtWidgets.QMainWindow):
         u.plot_pi_fitness_function(Path(self.fitness_dir),
                                    self.parameter_plot.fig,
                                    self.parameter_plot.axes,
-                                   cax=cax)
+                                   cax=cax,
+                                   cmap=colormap)
         self.parameter_plot.draw()
 
     def populate_file_list(self):
@@ -313,6 +321,7 @@ class MainWindow(QtWidgets.QMainWindow):
             current_item = QtWidgets.QListWidgetItem(self.file_list_widget)
             current_item.setText(file)
 
+
     def plot_clicked_dir_arrows(self):
         if len(self.file_list_widget.selectedItems()) > 0:
             if self.last_arrows is not None:
@@ -329,17 +338,33 @@ class MainWindow(QtWidgets.QMainWindow):
                 config = u.read_config_from_output_file(outfiles[0])
                 description = (
                     f"{f.stem}\t"
-                    f"{config['RunTime']} ms\t"
-                    f"controller: {config['Controller']} "
-                    f"({config['stage_length']} s)\n"
-                    f"Kp init: {config['kp']}, "
-                    f"Ti init: {config['ti']}\n"
-                    f"gamma: {config['gamma']}, "
-                    f"lambda: {config['lam']}\n"
-                    f"min_kp,min_ti: {config['min_kp'], config['min_ti']}\n"
-                    f"stage_two_mean: {config['stage_two_mean']}"
+                    f"{maybe_field(config, 'RunTime')} ms\t"
+                    f"controller: {maybe_field(config, 'Controller')} "
+                    f"({maybe_field(config, 'stage_length')} s)\n"
+                    f"Kp init: {maybe_field(config, 'kp')}, "
+                    f"Ti init: {maybe_field(config, 'ti')}\n"
+                    f"gamma: {maybe_field(config, 'gamma')}, "
+                    f"lambda: {maybe_field(config, 'lam')}\n"
+                    f"min_kp,min_ti: {maybe_field(config, 'min_kp'), maybe_field(config, 'min_ti')}\n"
+                    f"stage_two_mean: {maybe_field(config, 'stage_two_mean')}"
                     )
-                self.description.setText(description) 
+                self.description.setText(description)
+                if self.last_lambda != config['lam']:
+                    try:
+                        cax = self.parameter_plot.fig.axes[-1]
+                    except IndexError:
+                        cax = None
+                    self.parameter_plot.axes.cla()
+                    u.plot_pi_fitness_function(Path(self.fitness_dir),
+                                               self.parameter_plot.fig,
+                                               self.parameter_plot.axes,
+                                               cax=cax,
+                                               lam=config['lam'],
+                                               zlim_exponent_high=self.zlim_exponent_high,
+                                               zlim_exponent_low=self.zlim_exponent_low,
+                                               cmap=colormap)
+                    self.parameter_plot.draw()
+                    self.last_lambda = config['lam']
             elif not self.df.empty:
                 row = self.df[self.df["Simulation dir"].str.contains(text)]
                 if not row.empty:
@@ -367,7 +392,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                                    cax=cax,
                                                    lam=row.iloc[0]['lambda'],
                                                    zlim_exponent_high=self.zlim_exponent_high,
-                                                   zlim_exponent_low=self.zlim_exponent_low)
+                                                   zlim_exponent_low=self.zlim_exponent_low,
+                                                   cmap=colormap)
                         self.parameter_plot.draw()
                         self.last_lambda = row.iloc[0]['lambda']
             else:
@@ -614,6 +640,13 @@ class RangeSlider(QtWidgets.QSlider):
         return style.sliderValueFromPosition(self.minimum(), self.maximum(),
                                              pos-slider_min, slider_max-slider_min,
                                              opt.upsideDown)
+
+
+def maybe_field(config, field):
+    if field in config:
+        return config[field]
+    else:
+        return ""
 
 
 if __name__ == "__main__":
