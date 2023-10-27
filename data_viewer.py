@@ -64,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "}")
 
         self.fitness_dir = (
-            "C:\\cic\\wrk\\zz_archive\\20230324_John_model\\Simulation_Output_Results\\PI_grid_search_12"
+            "PI_grid_search_12"
             )
         self.results_dir = (
             "stage_two_mean"
@@ -243,6 +243,7 @@ class MainWindow(QtWidgets.QMainWindow):
         u.plot_pi_fitness_function(Path(self.fitness_dir),
                                    self.parameter_plot.fig,
                                    self.parameter_plot.axes,
+                                   lam=self.last_lambda,
                                    cax=cax,
                                    zlim_exponent_high=self.zlim_exponent_high,
                                    cmap=colormap)
@@ -275,6 +276,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                    self.parameter_plot.fig,
                                    self.parameter_plot.axes,
                                    cax=cax,
+                                   lam=self.last_lambda,
                                    zlim_exponent_high=self.zlim_exponent_high,
                                    zlim_exponent_low=self.zlim_exponent_low,
                                    cmap=colormap)
@@ -303,6 +305,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                    self.parameter_plot.fig,
                                    self.parameter_plot.axes,
                                    cax=cax,
+                                   lam=self.last_lambda,
                                    cmap=colormap)
         self.parameter_plot.draw()
 
