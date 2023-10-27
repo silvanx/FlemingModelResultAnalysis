@@ -192,10 +192,14 @@ def read_ift_results(dirname: Path):
     beta_history = data_from_file_or_zeros(result_dir / 'controller_beta_values.csv', tt.shape)
     integral_term_history = data_from_file_or_zeros(result_dir / 'controller_integral_term_values.csv', tt.shape)
 
-    with open(result_dir / 'controller_parameter_values.csv', 'r') as f:
-        csvreader = csv.reader(f, delimiter=',')
-        parameters = np.asarray([[float(r[0]), float(r[1])]
-                                 for r in csvreader])
+    param_value_file = result_dir / 'controller_parameter_values.csv'
+    if param_value_file.exists():
+        with open(param_value_file, 'r') as f:
+            csvreader = csv.reader(f, delimiter=',')
+            parameters = np.asarray([[float(r[0]), float(r[1])]
+                                     for r in csvreader])
+    else:
+        parameters = np.zeros((2, len(tt)))
     # time, dbs = load_dbs_output(result_dir)
 
     shifted_reference_history = np.copy(reference_history)
@@ -258,7 +262,12 @@ def load_fitness_data(pi_fitness_dir, lam, setpoint=1.0414E-4, tail_length=6,
         tail_samples = int(tail_length / (controller_t[1]-controller_t[0]))
         cost = compute_cost(controller_b[-tail_samples:], controller_p[-tail_samples:], lam)
 
-        if re.match('^Kp=.*', result_dir.name):
+        outfiles = list(result_dir.glob("*.out"))
+        if len(outfiles) == 1:
+            config = read_config_from_output_file(outfiles[0])
+            res['Kp'] = config['kp']
+            res['Ti'] = config['ti']
+        elif re.match('^Kp=.*', result_dir.name):
             params_string = result_dir.name.split('-')[0].split(',')
             for p in params_string:
                 p = p.strip()
@@ -266,7 +275,10 @@ def load_fitness_data(pi_fitness_dir, lam, setpoint=1.0414E-4, tail_length=6,
                 res[k] = float(v)
         else:
             simulation_id = result_dir.name.split('-')[-1]
-            with open(Path(pi_fitness_dir) / f'pi_grid_{simulation_id}.sh', 'r') as f:
+            batch_file = Path(pi_fitness_dir) / f'pi_grid_{simulation_id}.sh'
+            if not batch_file.exists():
+                continue
+            with open(batch_file, 'r') as f:
                 for line in f:
                     if re.match('^mpirun', line):
                         kp, ti = re.search('pi_([\.0-9]+)_([\.0-9]+)\.yml', line).groups()
@@ -593,6 +605,7 @@ def plot_pi_fitness_function(pi_fitness_dir, fig, ax, setpoint=1.0414E-4,
         plt.colorbar(contours, cax=cax)
     ax.set_xlim([-0.01, x.max() + 0.01])
     ax.set_ylim([-0.01, y.max() + 0.01])
+    ax.set_title(f"$\lambda$ = {lam}")
 
 
 def plot_ift_trajectory(pi_fitness_dir, parameters, lam=1, setpoint=1.0414E-4,
