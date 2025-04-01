@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cbgplot"
+version = "0.0.1"
+requires-python = ">=3.9"
+authors =[
+    { name = "Kuba Orłowski", email = "kuba.orlowski@protonmail.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "scipy",
+    "neo",
+]
