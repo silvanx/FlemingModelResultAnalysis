@@ -64,10 +64,10 @@ class MainWindow(QtWidgets.QMainWindow):
             "}")
 
         self.fitness_dir = (
-            "PI_grid_search_12"
+            "SIMULATION_RESULTS/PI_grid_search_12"
             )
         self.results_dir = (
-            "stage_two_mean"
+            "SIMULATION_RESULTS/stage_two_mean"
             )
         self.file_list = []
         self.current_file = None
@@ -655,4 +655,4 @@ def maybe_field(config, field):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = MainWindow()
-    app.exec_()
+    app.exec()
